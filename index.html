@@ -1,210 +1,564 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>PDF 複驗照片編號框選工具</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>機電檢驗照片 PDF 框選工具｜正式版</title>
 <style>
-  :root{--blue:#38bdf8;--blue2:#0ea5e9;--bg:#f3f6fb;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#d7dee8;}
-  *{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",Arial,sans-serif;background:var(--bg);color:var(--ink)}
-  .wrap{max-width:1180px;margin:0 auto;padding:24px}.card{background:var(--card);border-radius:18px;box-shadow:0 10px 30px rgba(15,23,42,.08);padding:22px;margin-bottom:18px}
-  h1{font-size:24px;margin:0 0 10px}.hint{color:var(--muted);line-height:1.6;margin:8px 0 16px}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-  input[type=file]{padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff;max-width:100%}textarea{width:100%;min-height:150px;border:1px solid #cbd5e1;border-radius:12px;padding:12px;font-size:16px;line-height:1.6;resize:vertical;background:#fff}
-  button{border:0;border-radius:12px;padding:12px 18px;font-weight:700;font-size:15px;cursor:pointer;background:#e2e8f0;color:#0f172a}button.primary{background:#2563eb;color:#fff}button.good{background:#0ea5e9;color:#fff}button:disabled{opacity:.55;cursor:not-allowed}.status{font-weight:700;margin-top:12px;white-space:pre-wrap}.small{font-size:13px;color:var(--muted);line-height:1.6}.log{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:#0f172a;color:#e2e8f0;border-radius:12px;padding:12px;max-height:220px;overflow:auto;white-space:pre-wrap;font-size:13px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}.pagecard{background:#fff;border-radius:18px;box-shadow:0 8px 24px rgba(15,23,42,.08);padding:14px;overflow:auto}.pagehead{font-weight:800;margin-bottom:8px}.badge{display:inline-block;background:#e0f2fe;color:#075985;border-radius:999px;padding:4px 10px;font-size:13px;margin-left:8px}.canvasWrap{position:relative;display:inline-block;border:1px solid var(--line);background:#fff}.canvasWrap canvas{display:block;max-width:100%;height:auto}.overlay{position:absolute;left:0;top:0;pointer-events:none}.notfound{color:#b91c1c}.ok{color:#0369a1}.warn{color:#b45309}.legend{display:inline-flex;align-items:center;gap:8px}.swatch{width:24px;height:16px;border:3px solid rgba(14,165,233,.9);background:rgba(56,189,248,.22);border-radius:4px}
+  :root{--bg:#eef4fb;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#dbe7f3}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Microsoft JhengHei",sans-serif;background:linear-gradient(180deg,#f8fbff 0,#eef4fb 100%);color:var(--ink)}
+  .wrap{max-width:1220px;margin:0 auto;padding:22px}
+  .hero{background:linear-gradient(135deg,#075985,#2563eb);color:#fff;border-radius:24px;padding:24px;box-shadow:0 18px 40px rgba(15,23,42,.18);margin-bottom:18px}
+  .hero h1{margin:0 0 8px;font-size:28px}.hero p{margin:0;color:#dbeafe;line-height:1.7}
+  .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}@media(max-width:860px){.grid{grid-template-columns:1fr}}
+  .card{background:rgba(255,255,255,.94);border:1px solid rgba(219,231,243,.9);border-radius:22px;padding:20px;box-shadow:0 10px 30px rgba(15,23,42,.08);margin-bottom:18px}
+  h2{font-size:18px;margin:0 0 12px}h3{font-size:15px;margin:16px 0 8px;color:#334155}
+  .step{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#e0f2fe;color:#075985;font-weight:800;margin-right:8px}
+  input[type=file]{display:block;width:100%;padding:12px;border:1px dashed #93c5fd;border-radius:14px;background:#f8fbff;font-size:16px}
+  textarea{width:100%;min-height:190px;font-size:17px;line-height:1.55;padding:14px;border:1px solid #cbd5e1;border-radius:14px;resize:vertical;outline:none;background:#fff}
+  textarea:focus{border-color:#38bdf8;box-shadow:0 0 0 4px rgba(125,211,252,.28)}
+  .mode{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 12px}.mode label{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid #cbd5e1;background:#fff;border-radius:14px;cursor:pointer;font-weight:800;color:#334155}.mode input{accent-color:#2563eb}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
+  button{border:0;border-radius:14px;padding:13px 18px;font-weight:800;font-size:16px;cursor:pointer;transition:.15s transform,.15s opacity}
+  button:hover{transform:translateY(-1px)}button:disabled{opacity:.55;cursor:not-allowed;transform:none}
+  .primary{background:#2563eb;color:#fff;box-shadow:0 8px 18px rgba(37,99,235,.28)}.secondary{background:#64748b;color:#fff}.ghost{background:#e2e8f0;color:#0f172a}
+  .status{font-weight:800;margin-top:12px;white-space:pre-wrap;color:#075985}.box{padding:12px 14px;border-radius:14px;margin-top:12px;white-space:pre-wrap;line-height:1.6}.ok{background:#ecfeff;color:#155e75}.warn{background:#fff7ed;color:#9a3412}
+  .note{background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:14px;color:#475569;font-size:14px;line-height:1.7}.note ol{margin:8px 0 0 20px;padding:0}.note li{margin:8px 0}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:#e0f2fe;color:#075985;border:1px solid #bae6fd;border-radius:999px;padding:6px 10px;font-weight:800;margin:4px}
+  table{border-collapse:collapse;width:100%;font-size:14px;margin-top:12px;background:#fff;border-radius:14px;overflow:hidden}th,td{border-bottom:1px solid #e2e8f0;padding:10px;text-align:left;vertical-align:top}th{background:#f1f5f9;color:#334155}
+  .small{font-size:13px;color:#64748b}.loader{height:8px;background:#e2e8f0;border-radius:999px;overflow:hidden;margin-top:12px}.bar{height:100%;width:0;background:linear-gradient(90deg,#38bdf8,#2563eb);transition:.2s width}.hint{font-size:13px;color:#64748b;margin-top:6px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="card">
-    <h1>PDF 複驗照片編號框選工具</h1>
-    <div class="hint">
-      上傳完整 PDF檢驗照片，輸入「未改善缺失項目之照片編號」。<br>
-      支援「照片」與數字被 PDF 拆成不同文字片段、冒號/全形數字、空白換行差異，並避免 1 誤抓 11。
-    </div>
-    <div class="row">
-      <input id="pdfFile" type="file" accept="application/pdf" />
-      <span class="legend"><span class="swatch"></span>缺失標示為淺藍透明框</span>
-    </div>
-    <p class="small">可貼上：1, 2, 4-6 或 Excel、Word 複製的一整欄。照片 PDF 每個案場可不同，只要 PDF 內有可選取的「照片 N」文字層即可。</p>
-    <textarea id="numbers" placeholder="例如：&#10;1&#10;11&#10;80&#10;252"></textarea>
-    <div class="row" style="margin-top:14px">
-      <button class="primary" id="previewBtn">預覽框選</button>
-      <button class="good" id="downloadBtn" disabled>產生淺藍框選 PDF</button>
-      <button id="clearBtn">清除結果</button>
-      <button id="testBtn">測試：1,11,80</button>
-    </div>
-    <div id="status" class="status"></div>
-    <p class="small">資料只在本機瀏覽器處理，不會上傳。若 PDF 是掃描圖檔且沒有文字層，需先 OCR。</p>
+  <div class="hero">
+    <h1>機電檢驗照片 PDF 框選工具｜正式版</h1>
+    <p>完整 PDF 上傳 → 淺藍框選「照片 N」標籤 → 樓層導航 → 可依改善建議自動標示「圖面確認」與「技師用印」。</p>
   </div>
-  <div id="debugCard" class="card" style="display:none"><b>分析紀錄</b><div id="debug" class="log"></div></div>
-  <div id="results" class="grid"></div>
+  <div class="grid">
+    <div class="card">
+      <h2><span class="step">1</span>選擇照片 PDF</h2>
+      <input id="pdfFile" type="file" accept="application/pdf" />
+      <h3><span class="step">2</span>選擇輸入格式</h3>
+      <div class="mode">
+        <label><input type="radio" name="inputMode" value="numbers" checked> 貼上照片編號清單</label>
+        <label><input type="radio" name="inputMode" value="advice"> 貼上缺失敘述、改善建議及照片編號清單</label>
+      </div>
+      <h3 id="inputTitle"><span class="step">3</span>貼上照片編號清單</h3>
+      <textarea id="numbers"></textarea>
+      <div id="formatHint" class="hint"></div>
+      <div class="row">
+        <button class="primary" id="runBtn">產生正式版 PDF</button>
+        <button class="ghost" id="testBtn">填入範例資料</button>
+        <button class="secondary" id="clearBtn">清除</button>
+      </div>
+      <div class="loader"><div id="bar" class="bar"></div></div>
+      <div id="status" class="status"></div><div id="message"></div>
+    </div>
+    <div class="card">
+      <h2>使用教學</h2>
+      <div class="note"><ol>
+        <li><b>選擇照片 PDF：</b>請上傳該案場完整的檢驗照片 PDF，工具會依 PDF 內的「照片 N」文字定位並加上淺藍框。</li>
+        <li><b>選擇輸入格式：</b>若只要框選照片，選「貼上照片編號清單」；若要產生複驗導航報表，選「貼上缺失敘述、改善建議及照片編號清單」。</li>
+        <li><b>三欄格式：</b>每列一筆，格式為「缺失敘述 + Tab + 改善建議 + Tab + 照片號碼」，例如：<br><b>(照明系統)A棟17F外牆LOGO燈圖說未標示　重新標示　62</b></li>
+        <li><b>樓層判斷：</b>三欄模式會完全依你貼上的缺失敘述判斷棟別與樓層；PDF 只用來找照片號碼位置。</li>
+        <li><b>排序規則：</b>RF／屋突 → R層 → 標準層 → 1MF → B1F 往下；同樓層依 A棟、B棟、C棟…排序，無棟別會排在該樓層最後。</li>
+        <li><b>特殊標記：</b>改善建議含「修正標示、釐清修正、盡速安裝」會標示「圖面確認」；含「釐清修正」會額外標示「技師用印」。</li>
+        <li><b>導航操作：</b>輸出 PDF 第一頁起會新增樓層導航表；原 PDF 每頁上下方會出現該頁實際樓層按鈕，例如 <b>NAV A-17F</b>，點擊可回到對應導航列。</li>
+        <li><b>離線使用：</b>請將 <b>pdf.min.js、pdf.worker.min.js、pdf-lib.min.js</b> 放在 <b>./pdf-lib-master/libs/</b> 目錄下。</li>
+      </ol></div>
+      <h3>棟別／樓層統計</h3><div id="floorTags" class="small">尚未執行。</div>
+    </div>
+  </div>
+  <div class="card"><h2>結果摘要</h2><div id="summary" class="small">尚未執行。</div><div id="resultTable"></div></div>
 </div>
+
+<script src="./pdf-lib-master/libs/pdf.min.js"></script>
+<script src="./pdf-lib-master/libs/pdf.worker.min.js"></script>
+<script src="./pdf-lib-master/libs/pdf-lib.min.js"></script>
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-const $ = id => document.getElementById(id);
-let current = { fileBytes:null, pdf:null, overlays:[], foundMap:new Map(), missing:[], pageCanvases:new Map(), pageData:new Map() };
+pdfjsLib.GlobalWorkerOptions.workerSrc="./pdf-lib-master/libs/pdf.worker.min.js";
 
-function normalizeDigits(s){
-  const fw='０１２３４５６７８９';
-  return String(s||'').replace(/[０-９]/g, d => String(fw.indexOf(d))).replace(/[\u00a0\u2000-\u200b\u202f\u3000]/g,' ');
-}
-function parseNumbers(text){
-  const out = new Set();
-  const src = normalizeDigits(text).replace(/[，、；;\t\n\r]+/g, ',');
-  for(const part of src.split(',')){
-    const p = part.trim(); if(!p) continue;
-    const m = p.match(/^(\d+)\s*[-~～—]\s*(\d+)$/);
-    if(m){ let a=+m[1], b=+m[2]; if(a>b)[a,b]=[b,a]; for(let i=a;i<=b;i++) out.add(i); }
-    else { const nums = p.match(/\d+/g); if(nums) nums.forEach(n=>out.add(+n)); }
-  }
-  return [...out].filter(n=>Number.isInteger(n)&&n>0).sort((a,b)=>a-b);
-}
-function rectUnion(rects){
-  const xs = rects.map(r=>r.x), ys=rects.map(r=>r.y), x2=rects.map(r=>r.x+r.w), y2=rects.map(r=>r.y+r.h);
-  return {x:Math.min(...xs), y:Math.min(...ys), w:Math.max(...x2)-Math.min(...xs), h:Math.max(...y2)-Math.min(...ys)};
-}
-function escapeReg(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+const BLUE_RGB={r:.49,g:.83,b:.99}, DRAW_RGB={r:.74,g:.93,b:.78}, SEAL_RGB={r:.96,g:.78,b:.86};
+const $=id=>document.getElementById(id);
+const statusEl=$("status"), messageEl=$("message"), summaryEl=$("summary"), floorTagsEl=$("floorTags"), resultTableEl=$("resultTable"), barEl=$("bar"), textarea=$("numbers"), inputTitle=$("inputTitle"), formatHint=$("formatHint");
 
-function itemToChars(item, viewport){
-  const str = normalizeDigits(item.str || '');
-  if(!str) return [];
-  const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
-  const x = tx[4], baseY = tx[5];
-  const w = Math.max(item.width || 0, 0.1);
-  const h = Math.max(item.height || Math.abs(tx[3]) || 8, 6);
-  const top = baseY - h;
-  const chars = [...str];
-  const per = w / Math.max(chars.length,1);
-  return chars.map((ch,i)=>({ ch, x:x+i*per, y:top, w:per, h, pageYBase:baseY }));
-}
-function groupLines(chars){
-  const sorted = chars.slice().sort((a,b)=> (a.y-b.y) || (a.x-b.x));
-  const lines=[];
-  for(const c of sorted){
-    let line = lines.find(l => Math.abs(l.y - c.y) < Math.max(3, c.h*0.45));
-    if(!line){ line={y:c.y, chars:[]}; lines.push(line); }
-    line.chars.push(c); line.y = (line.y*(line.chars.length-1)+c.y)/line.chars.length;
+document.querySelectorAll('input[name="inputMode"]').forEach(r=>r.addEventListener("change",updateModeUI));
+$("testBtn").addEventListener("click",()=>{textarea.value=getMode()==="advice"?`(照明系統)A棟17F外牆LOGO燈圖說未標示	重新標示	62
+(照明系統)A棟17F外牆LOGO燈圖說未標示	重新標示	63
+(照明系統)A棟17F排煙室燈具故障	檢修復原	64
+(照明系統)A棟3F外牆陽台燈故障	檢修復原	73
+(景觀系統)A棟R2F消防機房噴灌設備配置與圖不符(文件：NFB，現場：ELCB)	釐清修正	1612`:"1,2,4,5,6,80,162"});
+$("clearBtn").addEventListener("click",()=>{textarea.value="";statusEl.textContent="";messageEl.innerHTML="";summaryEl.textContent="尚未執行。";floorTagsEl.textContent="尚未執行。";resultTableEl.innerHTML="";barEl.style.width="0%"});
+$("runBtn").addEventListener("click",run);
+
+function getMode(){return document.querySelector('input[name="inputMode"]:checked').value}
+function updateModeUI(){
+  if(getMode()==="advice"){
+    inputTitle.innerHTML='<span class="step">3</span>貼上缺失敘述、改善建議及照片編號清單';
+    textarea.placeholder=`例如：
+(照明系統)A棟17F外牆LOGO燈圖說未標示	重新標示	62
+(照明系統)A棟17F外牆LOGO燈圖說未標示	重新標示	63
+(照明系統)A棟17F排煙室燈具故障	檢修復原	64
+(照明系統)A棟3F外牆陽台燈故障	檢修復原	73`;
+    formatHint.textContent="三欄模式：每列一筆，格式為「缺失敘述 + Tab + 改善建議 + Tab + 照片號碼」。樓層、棟別與摘要會完全依缺失敘述判斷。";
+  }else{
+    inputTitle.innerHTML='<span class="step">3</span>貼上照片編號清單';
+    textarea.placeholder=`例如：
+1
+11
+80
+162
+
+也支援：1, 2, 4-6, 80`;
+    formatHint.textContent="純編號模式：可用換行、逗號或範圍，例如 1, 2, 10-15。";
   }
-  for(const l of lines){ l.chars.sort((a,b)=>a.x-b.x); l.text = l.chars.map(c=>c.ch).join(''); l.flat = l.text.replace(/\s+/g,''); }
-  return lines.sort((a,b)=>a.y-b.y);
 }
-function findLabelsInLine(line, wantedSet){
-  const matches=[];
-  // 直接在去空白後找「照片N」，並保留原 char 索引對應
-  const map=[]; let compact='';
-  line.chars.forEach((c,i)=>{ if(!/\s/.test(c.ch)){ map.push(i); compact += c.ch; } });
-  // 支援「相片」誤植，但以照片為主
-  const re = /(照片|相片)(\d{1,5})(?=\D|$)/g;
-  let m;
-  while((m = re.exec(compact))){
-    const num = parseInt(m[2],10);
-    if(!wantedSet.has(num)) continue;
-    const startCompact = m.index;
-    const endCompact = m.index + m[0].length - 1;
-    const startIdx = map[startCompact], endIdx = map[endCompact];
-    const rect = rectUnion(line.chars.slice(startIdx, endIdx+1).map(c=>({x:c.x,y:c.y,w:c.w,h:c.h})));
-    matches.push({num, rect, source: compact.slice(m.index, m.index+m[0].length), lineText: line.text});
+updateModeUI();
+
+function setProgress(done,total,text){barEl.style.width=(total?Math.round(done/total*100):0)+"%";if(text)statusEl.textContent=text}
+function parseInput(input,mode){return mode==="advice"?parseAdviceRows(input):parseNumberRows(input)}
+function parseNumberRows(input){
+  const out=new Map(); const parts=input.replace(/[，、；;|\t]/g,",").split(/[\n,\s]+/).map(s=>s.trim()).filter(Boolean);
+  for(const p of parts){const m=p.match(/^(\d+)\s*[-~－—]\s*(\d+)$/); if(m){let a=+m[1],b=+m[2]; if(a>b)[a,b]=[b,a]; for(let n=a;n<=b;n++)out.set(n,{photoNo:n,advice:"",needsDrawCheck:false,needsSeal:false})}else if(/^\d+$/.test(p)){const n=+p;out.set(n,{photoNo:n,advice:"",needsDrawCheck:false,needsSeal:false})}}
+  return [...out.values()].sort((a,b)=>a.photoNo-b.photoNo)
+}
+function parseAdviceRows(input){
+  const out=new Map();
+
+  for(const rawLine of input.split(/\r?\n/)){
+    const line=rawLine.trim();
+    if(!line) continue;
+
+    // 新三欄格式：缺失敘述 TAB 改善建議 TAB 照片號碼
+    const parts=line.split(/\t+/).map(s=>s.trim()).filter(Boolean);
+
+    let defect="", advice="", photoNo=0;
+
+    if(parts.length>=3){
+      defect=parts[0];
+      advice=parts[1];
+      photoNo=parseInt(parts[2],10);
+    }else{
+      // 備援：最後一段數字視為照片號碼，倒數第二段視為改善建議，其餘視為缺失敘述。
+      const mm=line.match(/^(.*?)\s+([^\s]+)\s+(\d+)\s*$/);
+      if(!mm) continue;
+      defect=mm[1].trim();
+      advice=mm[2].trim();
+      photoNo=parseInt(mm[3],10);
+    }
+
+    if(!photoNo || !defect) continue;
+
+    const flags=getAdviceFlags(advice);
+
+    out.set(photoNo,{
+      photoNo,
+      defectText:defect,
+      advice,
+      needsDrawCheck:flags.needsDrawCheck,
+      needsSeal:flags.needsSeal
+    });
   }
-  return matches;
+
+  return [...out.values()].sort((a,b)=>a.photoNo-b.photoNo)
 }
-async function analyzePdf(bytes, wanted){
-  const pdf = await pdfjsLib.getDocument({data:bytes.slice(0)}).promise;
-  const wantedSet = new Set(wanted);
-  const foundMap = new Map(); const overlays=[]; const debug=[]; const pageData=new Map();
-  for(let p=1; p<=pdf.numPages; p++){
-    const page = await pdf.getPage(p);
-    const viewport = page.getViewport({scale:1});
-    const text = await page.getTextContent({normalizeWhitespace:false, disableCombineTextItems:false});
-    let chars=[];
-    for(const item of text.items){ chars.push(...itemToChars(item, viewport)); }
-    const lines = groupLines(chars);
-    pageData.set(p, {viewport, lines});
-    let pageHits=0;
-    for(const line of lines){
-      const hits = findLabelsInLine(line, wantedSet);
-      for(const h of hits){
-        const key = h.num;
-        if(!foundMap.has(key)) foundMap.set(key, []);
-        const padX = Math.max(4, h.rect.h*0.25), padY = Math.max(2.5, h.rect.h*0.18);
-        const rect = {x:h.rect.x-padX, y:h.rect.y-padY, w:h.rect.w+padX*2, h:h.rect.h+padY*2};
-        const hit = {num:h.num, page:p, rect, source:h.source, lineText:h.lineText, viewportWidth:viewport.width, viewportHeight:viewport.height};
-        foundMap.get(key).push(hit); overlays.push(hit); pageHits++;
+function getAdviceFlags(advice){return {needsDrawCheck:/修正標示|釐清修正|盡速安裝/.test(advice||""), needsSeal:/釐清修正/.test(advice||"")}}
+function normalizeText(s){return(s||"").replace(/\s+/g,"").replace(/[：:]/g,":").replace(/[０-９]/g,ch=>String.fromCharCode(ch.charCodeAt(0)-0xFF10+48))}
+function isDigit(ch){return /\d/.test(ch||"")}
+function textItemToBox(item,viewport){const tx=pdfjsLib.Util.transform(viewport.transform,item.transform), x=tx[4], fh=Math.hypot(tx[2],tx[3])||item.height||8, yTop=tx[5]-fh, w=item.width||Math.max(4,(item.str||"").length*fh*.55); return{x,yTop,w,h:fh}}
+function groupLines(items){
+  const lines=[]; const sorted=items.slice().sort((a,b)=>a.yTop-b.yTop||a.x-b.x);
+  for(const it of sorted){let l=lines.find(v=>Math.abs(v.y-it.yTop)<Math.max(3,it.h*.68)); if(!l){l={y:it.yTop,items:[]};lines.push(l)} l.items.push(it); l.y=(l.y*(l.items.length-1)+it.yTop)/l.items.length}
+  for(const l of lines){l.items.sort((a,b)=>a.x-b.x); l.raw=l.items.map(i=>i.str).join(" "); l.norm=""; l.charMap=[]; l.items.forEach((it,idx)=>{const ns=normalizeText(it.str); for(let k=0;k<ns.length;k++){l.charMap.push(idx);l.norm+=ns[k]}})}
+  return lines.sort((a,b)=>a.y-b.y)
+}
+function bboxForCharRange(line,start,endExclusive){const idxs=new Set(); for(let i=start;i<endExclusive;i++)if(line.charMap[i]!==undefined)idxs.add(line.charMap[i]); const boxes=[...idxs].map(i=>line.items[i]).filter(Boolean); if(!boxes.length)return null; const minX=Math.min(...boxes.map(b=>b.x)), minY=Math.min(...boxes.map(b=>b.yTop)), maxX=Math.max(...boxes.map(b=>b.x+b.w)), maxY=Math.max(...boxes.map(b=>b.yTop+b.h)); return{x:minX,yTop:minY,w:maxX-minX,h:maxY-minY}}
+function findPhotoLabelInLine(line,n){
+  const target="照片"+String(n); let start=-1;
+  while((start=line.norm.indexOf(target,start+1))!==-1){const before=start>0?line.norm[start-1]:"", after=line.norm[start+target.length]||""; if(!isDigit(before)&&!isDigit(after)){const bbox=bboxForCharRange(line,start,start+target.length); if(bbox)return{bbox,line}}}
+  const m=line.norm.match(new RegExp("照片[^0-9]{0,8}"+String(n)+"(?!\\d)")); if(m){const bbox=bboxForCharRange(line,m.index,m.index+m[0].length); if(bbox)return{bbox,line}} return null
+}
+function getDefectDescription(text, photoNo){
+  let s=(text||"").replace(/\s+/g," ").trim();
+  if(photoNo !== undefined && photoNo !== null){
+    const re = new RegExp("照片\\s*" + photoNo + "\\s*[:：]?\\s*([\\s\\S]*?)(?=\\s*照片\\s*\\d+\\s*[:：]|$)");
+    const m = s.match(re);
+    if(m) return cleanDefectText(m[1]);
+  }
+  const m=s.match(/照片\s*\d+\s*[:：]?\s*([\s\S]*?)(?=\s*照片\s*\d+\s*[:：]|$)/);
+  return cleanDefectText(m ? m[1] : s);
+}
+
+function cleanDefectText(s){
+  return String(s||"")
+    .replace(/\s+/g," ")
+    .replace(/^[\s\d]+[:：]\s*/,"")
+    .replace(/^[:：]\s*/,"")
+    .trim();
+}
+
+function normalizeFloorToken(token){
+  if(!token) return "";
+  let f=String(token).toUpperCase().replace(/\s+/g,"");
+  f=f.replace("屋突","RF").replace("屋頂","RF").replace(/^R\.?F$/,"RF");
+  f=f.replace(/地下(\d+)樓/,"B$1F").replace(/地上(\d+)樓/,"$1F");
+  f=f.replace(/^B(\d+)$/,"B$1F").replace(/^R(\d+)$/,"R$1F");
+  return f;
+}
+
+function getFloorPrefix(desc){
+  return String(desc||"")
+    .replace(/\s+/g,"")
+    .toUpperCase()
+    .replace(/^\([^)]*\)/,"")
+    .slice(0,36);
+}
+
+function extractBuilding(desc){
+  // 只判斷樓層之前是否有棟別；若棟別出現在後續內容，不算棟別。
+  const prefix=getFloorPrefix(desc);
+  const m=prefix.match(/^([A-Z])棟(?=(RF|R\d+F|\d+MF|\d+F|B\d+F?))/);
+  return m ? `${m[1]}棟` : "";
+}
+
+function extractFloorFromDesc(desc){
+  const prefix=getFloorPrefix(desc);
+
+  // 有棟別：A棟R2F、B棟B2F、A棟17F
+  let m=prefix.match(/^[A-Z]棟(RF|R\d+F|\d+MF|B\d+F?|\d+F)/);
+  if(m) return normalizeFloorToken(m[1]);
+
+  // 無棟別：只抓最前面的樓層。B1~B6 必須優先於 1F 判斷。
+  m=prefix.match(/^(RF|R\d+F|\d+MF|B\d+F?|\d+F)/);
+  if(m) return normalizeFloorToken(m[1]);
+
+  return "未辨識";
+}
+
+function makeNavKey(record, hasMultipleBuildings){
+  const floor = record.floor || "未辨識";
+
+  if(/^B\d+F$/i.test(floor)){
+    return record.building ? `${record.building}${floor}` : floor;
+  }
+
+  if(record.building){
+    return `${record.building}${floor}`;
+  }
+
+  // 1F 以上無棟別排在同樓層最後
+  return `~${floor}`;
+}
+
+function makeShortSummary(text, photoNo){
+  const desc=cleanDefectText(getDefectDescription(text, photoNo));
+  const compact=desc.replace(/\s+/g," ").trim();
+  const sys=(compact.match(/^\s*(\([^)]{1,16}\))/) || [,""])[1];
+  const building=extractBuilding(compact);
+  const floor=extractFloorFromDesc(compact);
+  const bf=`${building||""}${floor && floor!=="未辨識" ? floor : ""}`;
+  if(sys && bf) return `${sys}${bf}`;
+  if(sys) return sys;
+  return shorten(compact,18);
+}
+
+function buildingSortKey(building){
+  if(!building) return 0;
+  const m=String(building).toUpperCase().match(/^([A-Z])棟$/);
+  if(!m) return 999;
+  return m[1].charCodeAt(0)-65+1;
+}
+
+function floorSortKey(f){
+  const F=normalizeFloorToken(f);
+  if(F==="未辨識") return 999999;
+  if(F==="RF") return 0;
+  let m=F.match(/^R(\d+)F$/); if(m) return 1000-parseInt(m[1],10);
+  m=F.match(/^(\d+)F$/); if(m) return 3000-parseInt(m[1],10);
+  m=F.match(/^(\d+)MF$/); if(m) return 3500-parseInt(m[1],10);
+  m=F.match(/^B(\d+)F$/); if(m) return 4000+parseInt(m[1],10);
+  return 900000;
+}
+
+function combinedSortKey(groupKey){
+  const s=String(groupKey||"").toUpperCase();
+  const noBuilding=s.startsWith("~");
+  const clean=noBuilding ? s.slice(1) : s;
+  const m=clean.match(/^([A-Z]棟)?(.+)$/);
+  const building=m && m[1] ? m[1] : "";
+  const floor=m ? m[2] : clean;
+  let base=floorSortKey(floor)*1000;
+  base += noBuilding ? 999 : buildingSortKey(building);
+  return base;
+}
+
+function navButtonLabel(groupKey){
+  const s=String(groupKey||"").toUpperCase().replace(/\s+/g,"").replace(/^~/,"");
+  const m=s.match(/^([A-Z])棟(.+)$/);
+  const safe=m ? `${m[1]}-${m[2]}` : s;
+  return safe.replace(/[^A-Z0-9\-]/g,"");
+}
+
+function displayNavKey(groupKey){
+  // 隱藏內部排序符號 ~，正式畫面不可顯示
+  return String(groupKey || "").replace(/^~/,"");
+}
+
+function pageYToPdfY(pageHeight,yTop,h){return pageHeight-yTop-h}
+
+async function run(){
+  const file=$("pdfFile").files[0], mode=getMode(), parsed=parseInput(textarea.value,mode), nums=parsed.map(x=>x.photoNo), metaByNo=new Map(parsed.map(x=>[x.photoNo,x]));
+  messageEl.innerHTML="";summaryEl.textContent="";floorTagsEl.innerHTML="";resultTableEl.innerHTML="";
+  if(!file){alert("請先選擇 PDF。");return} if(!nums.length){alert("請輸入照片編號，或改善建議及照片編號。");return}
+  $("runBtn").disabled=true;
+  try{
+    setProgress(0,1,"讀取 PDF 中...");
+    const bytes=await file.arrayBuffer(), pdfjsDoc=await pdfjsLib.getDocument({data:bytes.slice(0)}).promise, pdfLibDoc=await PDFLib.PDFDocument.load(bytes.slice(0)), foundMap=new Map();
+
+    for(let p=1;p<=pdfjsDoc.numPages;p++){
+      const page=await pdfjsDoc.getPage(p), viewport=page.getViewport({scale:1}), text=await page.getTextContent();
+      const items=text.items.filter(it=>(it.str||"").trim()).map(it=>({str:it.str,...textItemToBox(it,viewport)})), lines=groupLines(items);
+      for(const n of nums){ if(foundMap.has(n))continue; for(let li=0;li<lines.length;li++){const hit=findPhotoLabelInLine(lines[li],n); if(hit){const rawDesc=[lines[li]?.raw||"",lines[li+1]?.raw||"",lines[li+2]?.raw||""].join(" "), meta=metaByNo.get(n)||{};
+          // 三欄模式以貼上的缺失敘述為準；PDF 只負責照片號碼定位。
+          const sourceDesc = meta.defectText ? cleanDefectText(meta.defectText) : getDefectDescription(rawDesc,n);
+          const building=extractBuilding(sourceDesc);
+          const floor=extractFloorFromDesc(sourceDesc);
+          foundMap.set(n,{photoNo:n,advice:meta.advice||"",defectText:sourceDesc,needsDrawCheck:!!meta.needsDrawCheck,needsSeal:!!meta.needsSeal,pageIndex:p-1,pageNoOriginal:p,bbox:hit.bbox,building,floor,navKey:floor,text:sourceDesc.replace(/\s+/g," ").trim(),summary:makeShortSummary(sourceDesc,n)}); break}}}
+      setProgress(p,pdfjsDoc.numPages,`掃描中：第 ${p}/${pdfjsDoc.numPages} 頁，已找到 ${foundMap.size}/${nums.length}`);
+    }
+
+    const found=nums.map(n=>foundMap.get(n)).filter(Boolean), missing=nums.filter(n=>!foundMap.has(n));
+    const buildingSet = new Set(found.map(r=>r.building).filter(Boolean));
+    const hasMultipleBuildings = buildingSet.size > 1;
+    for(const r of found){ r.navKey = makeNavKey(r, hasMultipleBuildings); }
+    if(!found.length){messageEl.innerHTML=`<div class="box warn">沒有找到任何可框選的「照片 N」文字。</div>`;setProgress(1,1,"未產生 PDF。");return}
+
+    setProgress(1,1,"建立藍框、標記、導航頁與頁內定位連結中...");
+    const pages=pdfLibDoc.getPages();
+
+    // 先準備標記圖片，避免每筆重複嵌入造成疊圖或效率問題
+    const drawMarkerPng = await makeMarkerPngBytes("圖面確認", DRAW_RGB);
+    const sealMarkerPng = await makeMarkerPngBytes("技師用印", SEAL_RGB);
+    const drawMarkerImg = await pdfLibDoc.embedPng(drawMarkerPng);
+    const sealMarkerImg = await pdfLibDoc.embedPng(sealMarkerPng);
+
+    // 修正重點：所有原 PDF 標記都在頁面既有內容之後 draw，確保浮在最上層
+    for(const r of found){
+      const page=pages[r.pageIndex], pageH=page.getHeight(), padX=3, padY=2;
+      const x=Math.max(0,r.bbox.x-padX), y=Math.max(0,pageYToPdfY(pageH,r.bbox.yTop,r.bbox.h)-padY), w=r.bbox.w+padX*2, h=r.bbox.h+padY*2;
+      page.drawRectangle({x,y,width:w,height:h,color:PDFLib.rgb(BLUE_RGB.r,BLUE_RGB.g,BLUE_RGB.b),opacity:.35,borderColor:PDFLib.rgb(.02,.52,.70),borderWidth:1.2,borderOpacity:.9});
+      let markerX=x, markerY=Math.min(pageH-18,y+h+4);
+      if(r.needsDrawCheck){page.drawImage(drawMarkerImg,{x:markerX,y:markerY,width:58,height:16}); markerX+=62}
+      if(r.needsSeal){page.drawImage(sealMarkerImg,{x:markerX,y:markerY,width:58,height:16})}
+      r.pdfRect={x,y,w,h}; r.destY=Math.min(pageH,y+h+120);
+    }
+
+    const navData=buildNavData(found), firstPage=pages[0], navW=firstPage.getWidth(), navH=firstPage.getHeight();
+    let navOffset = 0;
+    let navCanvases = [];
+    // 導航頁數會影響「輸出後頁碼」，而輸出後頁碼文字又可能影響導航分頁。
+    // 先試算導航頁數，再用該頁數重建；若頁數改變就再重建，直到穩定。
+    for (let attempt = 0; attempt < 5; attempt++) {
+      navCanvases = createNavigationCanvases(navData, nums.length, found.length, missing, navW, navH, navOffset);
+      if (navCanvases.length === navOffset) break;
+      navOffset = navCanvases.length;
+    }
+    for(let i=navCanvases.length-1;i>=0;i--){const pngBytes=await canvasToPngBytes(navCanvases[i].canvas), png=await pdfLibDoc.embedPng(pngBytes), navPage=pdfLibDoc.insertPage(0,[navW,navH]); navPage.drawImage(png,{x:0,y:0,width:navW,height:navH})}
+
+    const allPages=pdfLibDoc.getPages(), navCount=navCanvases.length;
+
+    // 建立「樓層 → 導航頁位置」對照，用於智能返回導航
+    const floorNavTargets = new Map();
+    const photoNavTargets = new Map();
+
+    for(let i=0;i<navCanvases.length;i++){
+      const canvas = navCanvases[i].canvas;
+      const scaleY = navH / canvas.height;
+
+      for(const a of (navCanvases[i].floorAnchors || [])){
+        floorNavTargets.set(a.floor, {
+          navPageIndex: i,
+          destY: navH - a.y * scaleY + 20
+        });
+      }
+
+      for(const a of (navCanvases[i].recordAnchors || [])){
+        photoNavTargets.set(a.photoNo, {
+          navPageIndex: i,
+          destY: navH - a.y * scaleY + 20
+        });
       }
     }
-    if(pageHits) debug.push(`第 ${p} 頁找到 ${pageHits} 處`);
-  }
-  const missing = wanted.filter(n => !foundMap.has(n));
-  return {pdf, overlays, foundMap, missing, pageData, debug};
-}
-async function renderPreviews(){
-  $('results').innerHTML=''; current.pageCanvases.clear();
-  const byPage = new Map();
-  for(const o of current.overlays){ if(!byPage.has(o.page)) byPage.set(o.page, []); byPage.get(o.page).push(o); }
-  for(const [pageNo, hits] of [...byPage.entries()].sort((a,b)=>a[0]-b[0])){
-    const page = await current.pdf.getPage(pageNo);
-    const baseViewport = page.getViewport({scale:1});
-    const maxW = 680; const scale = Math.min(1.8, Math.max(1.1, maxW/baseViewport.width));
-    const viewport = page.getViewport({scale});
-    const canvas = document.createElement('canvas'); const ctx=canvas.getContext('2d');
-    canvas.width = Math.floor(viewport.width); canvas.height = Math.floor(viewport.height);
-    await page.render({canvasContext:ctx, viewport}).promise;
-    const overlay = document.createElement('canvas'); overlay.className='overlay'; overlay.width=canvas.width; overlay.height=canvas.height;
-    overlay.style.width=canvas.style.width; overlay.style.height=canvas.style.height;
-    const ox=overlay.getContext('2d');
-    ox.fillStyle='rgba(56,189,248,0.22)'; ox.strokeStyle='rgba(14,165,233,0.95)'; ox.lineWidth=3;
-    for(const h of hits){
-      ox.fillRect(h.rect.x*scale, h.rect.y*scale, h.rect.w*scale, h.rect.h*scale);
-      ox.strokeRect(h.rect.x*scale, h.rect.y*scale, h.rect.w*scale, h.rect.h*scale);
+    for(let i=0;i<navCanvases.length;i++){const navPage=allPages[i], canvas=navCanvases[i].canvas, scaleX=navW/canvas.width, scaleY=navH/canvas.height; for(const link of navCanvases[i].links){const target=allPages[navCount+link.targetPageIndex]; if(!target)continue; const x=link.x*scaleX, y=navH-(link.y+link.h)*scaleY, w=link.w*scaleX, h=link.h*scaleY; addLinkAnnotation(pdfLibDoc,navPage,x,y,w,h,target,link.destY||target.getHeight())}}
+
+    
+    // 每個原 PDF 頁面只顯示該頁實際有框選到的樓層返回按鈕
+    // 按鈕由左往右排列，點擊後回到該樓層在導航頁的區塊位置
+    const floorsByOriginalPage = new Map();
+    for(const r of found){
+      if(!floorsByOriginalPage.has(r.pageIndex)) floorsByOriginalPage.set(r.pageIndex, new Map());
+
+      const key = r.navKey || r.floor;
+      const pageFloorMap = floorsByOriginalPage.get(r.pageIndex);
+
+      if(!pageFloorMap.has(key) || r.photoNo < pageFloorMap.get(key).photoNo){
+        pageFloorMap.set(key, r);
+      }
     }
-    const card=document.createElement('div'); card.className='pagecard';
-    const nums=[...new Set(hits.map(h=>h.num))].sort((a,b)=>a-b).join(', ');
-    card.innerHTML=`<div class="pagehead">第 ${pageNo} 頁 <span class="badge">${hits.length} 處</span><span class="badge">照片 ${nums}</span></div>`;
-    const wrap=document.createElement('div'); wrap.className='canvasWrap'; wrap.appendChild(canvas); wrap.appendChild(overlay); card.appendChild(wrap);
-    $('results').appendChild(card);
+
+    for(let i=navCount;i<allPages.length;i++){
+      const originalPageIndex = i - navCount;
+      const floorMap = floorsByOriginalPage.get(originalPageIndex);
+      if(!floorMap) continue;
+
+      const page = allPages[i];
+      const h = page.getHeight();
+      const floorEntries = [...floorMap.entries()].sort((a,b)=>combinedSortKey(a[0])-combinedSortKey(b[0]));
+
+      const btnH = 26;
+      const gap = 6;
+      const yPositions = [h - 42, 16]; // 上方一組、下方一組
+
+      for(const yPos of yPositions){
+        let xPos = 16;
+
+        for(const [floor, targetRecord] of floorEntries){
+          const label = `NAV ${navButtonLabel(floor)}`;
+          const btnW = Math.max(68, 30 + label.length * 5.2);
+          if(xPos + btnW > page.getWidth() - 12) break;
+
+          page.drawRectangle({
+            x:xPos,
+            y:yPos,
+            width:btnW,
+            height:btnH,
+            color:PDFLib.rgb(0.93,0.98,1),
+            opacity:.78,
+            borderColor:PDFLib.rgb(0.12,0.47,0.71),
+            borderWidth:1.1,
+            borderOpacity:.5
+          });
+
+          page.drawRectangle({
+            x:xPos,
+            y:yPos,
+            width:5,
+            height:btnH,
+            color:PDFLib.rgb(0.15,0.56,0.88),
+            opacity:.72
+          });
+
+          page.drawText(label,{
+            x:xPos+10,
+            y:yPos+9,
+            size:9.2,
+            color:PDFLib.rgb(0.07,0.17,0.29)
+          });
+
+          const target = photoNavTargets.get(targetRecord.photoNo)
+            || floorNavTargets.get(floor)
+            || {navPageIndex:0, destY:allPages[0].getHeight()};
+
+          const targetNavPage = allPages[target.navPageIndex] || allPages[0];
+          addLinkAnnotation(pdfLibDoc,page,xPos,yPos,btnW,btnH,targetNavPage,target.destY);
+
+          xPos += btnW + gap;
+        }
+      }
+    }
+
+const out=await pdfLibDoc.save(), blob=new Blob([out],{type:"application/pdf"}), url=URL.createObjectURL(blob), a=document.createElement("a"), clean=file.name.replace(/\.pdf$/i,"");
+    a.href=url;a.download=`${clean}_改良版淺藍框選_樓層導航.pdf`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+
+    renderSummary(found,missing,navData,navCanvases.length);
+    const drawCount=found.filter(x=>x.needsDrawCheck).length, sealCount=found.filter(x=>x.needsSeal).length;
+    messageEl.innerHTML=`<div class="box ${missing.length?"warn":"ok"}">輸入 ${nums.length} 個編號；找到 ${found.length} 處；框選 ${found.length} 處。
+圖面確認：${drawCount} 筆；技師用印：${sealCount} 筆。
+${missing.length?"找不到："+missing.join(", "):"全部找到。"}
+已修正：導航頁跑版與原 PDF 標記被壓在後方問題。</div>`;
+    setProgress(1,1,"完成。");
+  }catch(err){console.error(err);messageEl.innerHTML=`<div class="box warn">發生錯誤：${escapeHtml(err.message||String(err))}</div>`;statusEl.textContent="失敗。"}
+  finally{$("runBtn").disabled=false}
+}
+
+async function makeMarkerPngBytes(text,rgb){
+  const canvas=document.createElement("canvas"); canvas.width=232; canvas.height=64; const ctx=canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle=`rgba(${Math.round(rgb.r*255)},${Math.round(rgb.g*255)},${Math.round(rgb.b*255)},0.42)`;
+  roundRect(ctx,4,4,224,56,14,true,false);
+  ctx.strokeStyle="rgba(15,23,42,0.22)"; ctx.lineWidth=1.5; roundRect(ctx,4,4,224,56,14,false,true);
+  ctx.fillStyle="#0f172a"; ctx.font='bold 28px "Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif'; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(text,116,34);
+  return await canvasToPngBytes(canvas);
+}
+
+function addLinkAnnotation(pdfDoc,page,x,y,w,h,targetPage,destY){const annot=pdfDoc.context.obj({Type:"Annot",Subtype:"Link",Rect:[x,y,x+w,y+h],Border:[0,0,0],A:{S:"GoTo",D:[targetPage.ref,"XYZ",null,destY,1.25]}}); const ref=pdfDoc.context.register(annot); page.node.addAnnot(ref)}
+function buildNavData(found){
+  const groups=new Map();
+  for(const r of found){
+    const key=r.navKey || r.floor || "未辨識";
+    if(!groups.has(key)) groups.set(key,[]);
+    groups.get(key).push(r);
   }
+  return [...groups.keys()].sort((a,b)=>combinedSortKey(a)-combinedSortKey(b)).map(key=>({
+    floor:key,
+    items:groups.get(key).sort((a,b)=>a.photoNo-b.photoNo)
+  }));
 }
-async function makePdf(){
-  if(!current.fileBytes || !current.overlays.length) return;
-  const {PDFDocument, rgb} = PDFLib;
-  const doc = await PDFDocument.load(current.fileBytes.slice(0));
-  const pages = doc.getPages();
-  for(const h of current.overlays){
-    const page = pages[h.page-1]; if(!page) continue;
-    const {width, height} = page.getSize();
-    const sx = width / h.viewportWidth, sy = height / h.viewportHeight;
-    const x = h.rect.x * sx;
-    const y = height - ((h.rect.y + h.rect.h) * sy);
-    const w = h.rect.w * sx;
-    const hh = h.rect.h * sy;
-    page.drawRectangle({x, y, width:w, height:hh, borderColor:rgb(0.05,0.55,0.85), color:rgb(0.22,0.74,0.97), opacity:0.22, borderOpacity:0.95, borderWidth:1.8});
+
+function createNavigationCanvases(navData,inputCount,foundCount,missing,pageW,pageH,outputPageOffset=0){
+  // 修正重點：不再用「CSS 座標 * scale 後再重複乘 scale」；統一使用 pt 座標，繪圖時才乘 DPR。
+  const dpr=2, cw=Math.round(pageW*dpr), ch=Math.round(pageH*dpr), pages=[]; let canvas,ctx,links,floorAnchors,recordAnchors,y,pageNo=1;
+  const S=v=>v*dpr;
+  function newPage(){
+    canvas=document.createElement("canvas"); canvas.width=cw; canvas.height=ch; ctx=canvas.getContext("2d"); links=[]; floorAnchors=[]; recordAnchors=[];
+    const grad=ctx.createLinearGradient(0,0,cw,ch); grad.addColorStop(0,"#f8fbff"); grad.addColorStop(1,"#eef6ff"); ctx.fillStyle=grad; ctx.fillRect(0,0,cw,ch);
+    ctx.fillStyle="#075985"; rr(24,22,pageW-48,58,14,true,false);
+    text("棟別／樓層導航｜點照片直接跳到缺失藍框",42,50,18.5,"bold","#fff");
+    text(`輸入 ${inputCount}｜找到 ${foundCount}｜未找到 ${missing.length}｜導航頁 ${pageNo}｜表格頁碼為輸出後實際頁碼`,42,69,10.5,"normal","#dbeafe");
+    y=118; drawTableHeader();
   }
-  const out = await doc.save();
-  const blob = new Blob([out], {type:'application/pdf'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='照片編號淺藍框選_v4.pdf'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+  function finish(){pages.push({canvas,links,floorAnchors,recordAnchors})}
+  function text(t,x,y0,size,weight,color,align="left"){ctx.fillStyle=color;ctx.font=`${weight} ${S(size)}px system-ui,"Noto Sans TC","Microsoft JhengHei",sans-serif`;ctx.textAlign=align;ctx.textBaseline="alphabetic";ctx.fillText(t,S(x),S(y0));ctx.textAlign="left"}
+  function rr(x,y0,w,h,r,fill,stroke){roundRect(ctx,S(x),S(y0),S(w),S(h),S(r),fill,stroke)}
+  function drawTableHeader(){
+    rr(32,y-24,pageW-64,30,9,true,false); ctx.fillStyle="#e0f2fe"; rr(32,y-24,pageW-64,30,9,true,false);
+    text("樓層",55,y-5,10.5,"bold","#075985","center"); text("照片",125,y-5,10.5,"bold","#075985","center"); text("輸出頁碼",195,y-5,10.5,"bold","#075985","center"); text("摘要",285,y-5,10.5,"bold","#075985","center"); text("圖面確認",375,y-5,10.5,"bold","#075985","center"); text("技師用印",455,y-5,10.5,"bold","#075985","center"); text("改善建議",535,y-5,10.5,"bold","#075985","center");
+    y+=34;
+  }
+  function ensure(space){if(y+space>pageH-52){finish();pageNo++;newPage()}}
+  newPage();
+  for(const group of navData){
+    ensure(58);
+    ctx.fillStyle="#f0f9ff"; rr(32,y-18,pageW-64,30,9,true,false);
+    text(`${displayNavKey(group.floor)}（${group.items.length}）`,44,y+1,13.5,"bold","#075985");
+    ctx.strokeStyle="#bae6fd"; ctx.lineWidth=S(1); ctx.beginPath(); ctx.moveTo(S(132),S(y-4)); ctx.lineTo(S(pageW-44),S(y-4)); ctx.stroke();
+    // 記錄每個樓層在導航頁的位置，供原 PDF 智能返回
+    floorAnchors.push({floor: group.floor, y: Math.max(0, (y-28)*dpr)});
+    y+=36;
+    for(const r of group.items){
+      ensure(36);
+      const rowX=32,rowY=y-18,rowW=pageW-64,rowH=28;
+      ctx.fillStyle="#ffffff"; rr(rowX,rowY,rowW,rowH,8,true,false); ctx.strokeStyle="#dbeafe"; ctx.lineWidth=S(.8); rr(rowX,rowY,rowW,rowH,8,false,true);
+      text(displayNavKey(r.navKey || r.floor),55,y,10.5,"normal","#0f172a","center"); text(`照片 ${r.photoNo}`,125,y,10.5,"bold","#0369a1","center"); text(`第 ${r.pageNoOriginal + outputPageOffset} 頁`,195,y,10.5,"normal","#334155","center"); text(shorten(r.summary,16),285,y,10.5,"normal","#334155","center");
+      drawCheckCell(ctx,S(375),S(y-7),r.needsDrawCheck,"圖",dpr); drawCheckCell(ctx,S(455),S(y-7),r.needsSeal,"印",dpr);
+      text(shorten(r.advice || "-",10),535,y,10.5,"normal","#7c2d12","center");
+      links.push({x:rowX*dpr,y:rowY*dpr,w:rowW*dpr,h:rowH*dpr,targetPageIndex:r.pageIndex,destY:r.destY});
+      recordAnchors.push({photoNo:r.photoNo, y:Math.max(0,(rowY-8)*dpr)});
+      y+=32;
+    }
+    y+=10;
+  }
+  if(missing.length){ensure(80); ctx.fillStyle="#fff7ed"; rr(32,y-12,pageW-64,58,10,true,false); text("找不到",44,y+8,12,"bold","#9a3412"); text(shorten(missing.join(", "),92),100,y+8,10.5,"normal","#9a3412")}
+  finish(); return pages
 }
-function clearAll(){ $('results').innerHTML=''; $('status').textContent=''; $('debug').textContent=''; $('debugCard').style.display='none'; $('downloadBtn').disabled=true; current.overlays=[]; current.foundMap=new Map(); current.missing=[]; }
-async function run(){
-  clearAll(); const f=$('pdfFile').files[0]; const wanted=parseNumbers($('numbers').value);
-  if(!f){ $('status').innerHTML='<span class="notfound">請先選擇 PDF。</span>'; return; }
-  if(!wanted.length){ $('status').innerHTML='<span class="notfound">請輸入要標的照片編號。</span>'; return; }
-  $('previewBtn').disabled=true; $('status').textContent='分析 PDF 文字層中，請稍候…';
-  try{
-    const bytes = await f.arrayBuffer(); current.fileBytes=bytes;
-    const res = await analyzePdf(bytes, wanted); Object.assign(current,res);
-    const foundCount = wanted.filter(n=>current.foundMap.has(n)).length;
-    const overlayCount = current.overlays.length;
-    const miss = current.missing.join(', ');
-    $('status').innerHTML = `輸入 ${wanted.length} 個編號；找到 ${foundCount} 個編號；框選 ${overlayCount} 處。` + (miss?`\n<span class="notfound">找不到：${miss}</span>`:'\n<span class="ok">全部找到。</span>') + `\n已完成預覽，確認正確後可按「產生淺藍框選 PDF」。`;
-    $('debug').textContent = current.debug.join('\n') || '沒有找到符合的「照片 N」。'; $('debugCard').style.display='block';
-    $('downloadBtn').disabled = !current.overlays.length;
-    await renderPreviews();
-  }catch(e){ console.error(e); $('status').innerHTML='<span class="notfound">處理失敗：'+(e.message||e)+'</span>'; }
-  finally{ $('previewBtn').disabled=false; }
-}
-$('previewBtn').addEventListener('click', run); $('downloadBtn').addEventListener('click', makePdf); $('clearBtn').addEventListener('click', clearAll); $('testBtn').addEventListener('click',()=>{$('numbers').value='1\n11\n80';});
+function drawCheckCell(ctx,x,y,checked,label,dpr=1){if(!checked){ctx.strokeStyle="#cbd5e1";ctx.lineWidth=1.2*dpr;ctx.beginPath();ctx.arc(x,y,5*dpr,0,Math.PI*2);ctx.stroke();return} ctx.fillStyle="#0f766e";ctx.beginPath();ctx.arc(x,y,8*dpr,0,Math.PI*2);ctx.fill();ctx.fillStyle="#fff";ctx.font=`bold ${9*dpr}px system-ui,"Noto Sans TC",sans-serif`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(label,x,y+.5*dpr);ctx.textAlign="left";ctx.textBaseline="alphabetic"}
+async function canvasToPngBytes(canvas){return new Promise(resolve=>canvas.toBlob(async blob=>resolve(await blob.arrayBuffer()),"image/png"))}
+function roundRect(ctx,x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();if(fill)ctx.fill();if(stroke)ctx.stroke()}
+function renderSummary(found,missing,navData,outputPageOffset=0){const drawCount=found.filter(x=>x.needsDrawCheck).length,sealCount=found.filter(x=>x.needsSeal).length;summaryEl.textContent=`找到 ${found.length} 筆；未找到 ${missing.length} 筆；圖面確認 ${drawCount} 筆；技師用印 ${sealCount} 筆。`;floorTagsEl.innerHTML=navData.map(g=>`<span class="pill">${escapeHtml(g.floor)}｜${g.items.length}</span>`).join("");const rows=found.slice().sort((a,b)=>combinedSortKey(a.navKey||a.floor)-combinedSortKey(b.navKey||b.floor)||a.photoNo-b.photoNo).map(r=>`<tr><td>${escapeHtml(displayNavKey(r.navKey || r.floor))}</td><td>照片 ${r.photoNo}</td><td>第 ${r.pageNoOriginal + outputPageOffset} 頁</td><td>${escapeHtml(r.summary)}</td><td>${r.needsDrawCheck?"●":""}</td><td>${r.needsSeal?"●":""}</td><td>${escapeHtml(r.advice||"")}</td></tr>`).join("");resultTableEl.innerHTML=`<table><thead><tr><th>樓層</th><th>照片</th><th>頁碼</th><th>摘要</th><th>圖面確認</th><th>技師用印</th><th>改善建議</th></tr></thead><tbody>${rows}</tbody></table>`}
+function shorten(s,max){s=String(s||"");return s.length>max?s.slice(0,max-1)+"…":s}
+function escapeHtml(str){return String(str||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
 </script>
 </body>
 </html>
