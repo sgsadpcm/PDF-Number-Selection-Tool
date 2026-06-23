@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}法源依據 — {{ defect }} — 法規查詢系統{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+  <a href="{{ url_for('index') }}">首頁</a>
+  <span>›</span>
+  <a href="{{ url_for('defects', sheet_name=sheet_name) }}">{{ sheet_name }}</a>
+  <span>›</span>
+  <strong>法源依據</strong>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>
+    <span class="section-tag">{{ sheet_name }}</span>
+    法源依據
+  </h2>
+
+  <!-- 缺失項目 -->
+  <p style="font-size:0.82rem;color:#718096;margin-bottom:8px;">缺失項目</p>
+  <div class="defect-label">{{ defect }}</div>
+
+  <!-- 法源依據（短）-->
+  {% if reg_text %}
+  <p style="font-size:0.82rem;color:#718096;margin:18px 0 8px;">⚖ 法源依據</p>
+  <div class="reg-box">{{ reg_text }}</div>
+  {% endif %}
+
+  <!-- 法規內容（詳細）-->
+  {% if content_text %}
+  <p style="font-size:0.82rem;color:#718096;margin:18px 0 8px;">📄 法規內容</p>
+  <div class="reg-box" style="background:#f0f4ff;border-color:#90b8f8;color:#2c3e7a;white-space:pre-wrap;">{{ content_text }}</div>
+  {% endif %}
+
+  <!-- 無資料提示 -->
+  {% if not reg_text and not content_text and not images %}
+  <div class="reg-box reg-empty">此缺失項目尚無法源依據資料。</div>
+  {% if col_warning %}
+  <div style="margin-top:12px;background:#fffbeb;border:1px solid #f6e05e;border-radius:6px;padding:12px 16px;font-size:0.82rem;color:#744210;">
+    <strong>⚠ 偵錯資訊：</strong>找到的欄位：<code style="background:#fef3c7;padding:2px 6px;">{{ col_warning | join("、") }}</code>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <!-- 圖片區 -->
+  <p style="font-size:0.82rem;color:#718096;margin:22px 0 10px;">🖼 相關圖片</p>
+
+  {% if images %}
+  <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px;">
+    {% for img in images %}
+    <div style="position:relative;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.07);">
+      <img src="{{ url_for('serve_image', sheet_name=sheet_name, item_index=item_index, filename=img) }}"
+           alt="法規圖片"
+           style="max-width:420px;max-height:380px;display:block;cursor:zoom-in;"
+           onclick="window.open(this.src,'_blank')">
+      <a href="{{ url_for('delete_image', sheet_name=sheet_name, item_index=item_index, filename=img) }}"
+         style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px;text-decoration:none;"
+         onclick="return confirm('確認刪除此圖片？')">✕</a>
+    </div>
+    {% endfor %}
+  </div>
+  <p style="font-size:0.78rem;color:#a0aec0;margin-bottom:18px;">點擊圖片在新分頁中開啟全尺寸，點 ✕ 可刪除</p>
+  {% else %}
+  <p style="color:#a0aec0;font-size:0.88rem;margin-bottom:14px;">尚無圖片</p>
+  {% endif %}
+
+  <!-- 圖片上傳 -->
+  <form method="POST" enctype="multipart/form-data"
+        style="background:#f7fafc;border:1px dashed #cbd5e0;border-radius:8px;padding:14px 18px;">
+    <p style="font-size:0.85rem;font-weight:600;color:#4a5568;margin-bottom:8px;">上傳圖片</p>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <input type="file" name="images" accept="image/*" multiple
+             style="font-size:0.85rem;">
+      <button type="submit"
+              style="background:#2b6cb0;color:#fff;border:none;padding:7px 18px;border-radius:6px;font-size:0.88rem;cursor:pointer;font-weight:600;">
+        上傳
+      </button>
+    </div>
+    <p style="font-size:0.78rem;color:#a0aec0;margin-top:6px;">支援 PNG、JPG、GIF，可多選</p>
+  </form>
+
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:22px;">
+    <a class="back-btn" href="{{ url_for('defects', sheet_name=sheet_name) }}">← 返回 {{ sheet_name }} 缺失清單</a>
+    <a class="back-btn" href="{{ url_for('index') }}" style="background:#dbeafe;color:#2b6cb0;">🏠 系統首頁</a>
+  </div>
+</div>
+{% endblock %}

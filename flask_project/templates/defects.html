@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}{{ sheet_name }} 缺失項目 — 法規查詢系統{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+  <a href="{{ url_for('index') }}">首頁</a>
+  <span>›</span>
+  <strong>{{ sheet_name }}</strong>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>
+    <span class="section-tag">{{ sheet_name }}</span>
+    缺失項目清單
+  </h2>
+
+  {% if items %}
+    <p style="color:#718096;font-size:0.9rem;margin-bottom:18px;">
+      共 {{ items|length }} 個缺失項目，點擊查看對應法規依據
+    </p>
+    {% for item in items %}
+      <a class="list-item" href="{{ url_for('regulation', sheet_name=sheet_name, item_index=loop.index0) }}">
+        <span class="num">{{ loop.index }}</span>
+        <span class="text">{{ item }}</span>
+      </a>
+    {% endfor %}
+  {% else %}
+    <p style="color:#a0aec0;font-style:italic;">此系統沒有缺失項目資料。</p>
+  {% endif %}
+
+  <a class="back-btn" href="{{ url_for('index') }}">← 返回系統分類</a>
+</div>
+{% endblock %}

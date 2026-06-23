@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}法規查詢系統{% endblock %}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      background: #f0f4f8;
+      color: #2d3748;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a365d;
+      color: #fff;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    header h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    header a {
+      color: #bee3f8;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    header a:hover { text-decoration: underline; }
+
+    .breadcrumb {
+      background: #ebf4ff;
+      border-bottom: 1px solid #bee3f8;
+      padding: 10px 32px;
+      font-size: 0.85rem;
+      color: #2b6cb0;
+    }
+
+    .breadcrumb a { color: #2b6cb0; text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb span { color: #718096; margin: 0 6px; }
+
+    .container {
+      max-width: 900px;
+      margin: 36px auto;
+      padding: 0 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      padding: 28px 32px;
+    }
+
+    .card h2 {
+      font-size: 1.15rem;
+      color: #1a365d;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #bee3f8;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+      margin-top: 8px;
+    }
+
+    .chip {
+      display: block;
+      background: #ebf8ff;
+      border: 2px solid #90cdf4;
+      border-radius: 8px;
+      padding: 14px 16px;
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #2b6cb0;
+      text-decoration: none;
+      transition: all 0.18s;
+      cursor: pointer;
+    }
+
+    .chip:hover {
+      background: #2b6cb0;
+      color: #fff;
+      border-color: #2b6cb0;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(43,108,176,0.25);
+    }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 10px;
+      text-decoration: none;
+      color: #2d3748;
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+
+    .list-item:hover {
+      background: #ebf8ff;
+      border-color: #90cdf4;
+      color: #2b6cb0;
+    }
+
+    .list-item .num {
+      background: #2b6cb0;
+      color: #fff;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .list-item .text { font-size: 0.95rem; line-height: 1.5; }
+
+    .reg-box {
+      background: #f0fff4;
+      border: 1px solid #9ae6b4;
+      border-radius: 8px;
+      padding: 20px 24px;
+      line-height: 1.9;
+      font-size: 0.97rem;
+      color: #276749;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .reg-empty {
+      color: #a0aec0;
+      font-style: italic;
+    }
+
+    .defect-label {
+      background: #fff5f5;
+      border-left: 4px solid #fc8181;
+      padding: 12px 16px;
+      border-radius: 4px;
+      font-weight: 600;
+      color: #c53030;
+      margin-bottom: 18px;
+      font-size: 1rem;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 24px;
+      padding: 9px 18px;
+      border-radius: 6px;
+      background: #e2e8f0;
+      color: #4a5568;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: background 0.15s;
+    }
+
+    .back-btn:hover { background: #cbd5e0; }
+
+    .upload-box {
+      border: 2px dashed #90cdf4;
+      border-radius: 10px;
+      padding: 32px;
+      text-align: center;
+      margin-top: 18px;
+      background: #ebf8ff;
+    }
+
+    .upload-box input[type=file] { margin: 12px 0; }
+
+    .upload-box button {
+      background: #2b6cb0;
+      color: #fff;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    .upload-box button:hover { background: #2c5282; }
+
+    .flash {
+      background: #c6f6d5;
+      border: 1px solid #68d391;
+      color: #276749;
+      border-radius: 6px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+    }
+
+    .flash.error {
+      background: #fff5f5;
+      border-color: #fc8181;
+      color: #c53030;
+    }
+
+    .section-tag {
+      display: inline-block;
+      background: #2b6cb0;
+      color: #fff;
+      border-radius: 4px;
+      padding: 2px 10px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-right: 8px;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span style="font-size:1.6rem">📋</span>
+    <h1><a href="/" style="color:#fff;text-decoration:none">法規查詢系統</a></h1>
+  </header>
+
+  {% block breadcrumb %}{% endblock %}
+
+  <div class="container">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for msg in messages %}
+          <div class="flash">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>
