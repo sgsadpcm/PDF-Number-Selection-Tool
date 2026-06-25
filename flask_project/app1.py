@@ -7,14 +7,31 @@ import pandas as pd
 from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
 from werkzeug.utils import secure_filename
 
-app = Flask(__name__)
+
+import re
+SYSTEM_MAP = {
+    "電氣": "electric",
+    "排水": "drainage",
+    "給水": "water_supply",
+    "電梯": "elevator",
+    "高層建築": "high_rise",
+    "弱電": "low_voltage",
+    "發電機": "generator",
+    "太陽能": "solar",
+    "文件清冊": "documents",
+}
+
+def safe_name(name):
+    name = name.strip()
+    return re.sub(r"[^\u4e00-\u9fa5a-zA-Z0-9]", "", name)
+app = Flask(__name__, static_folder="static")
 app.secret_key = "regulation-lookup-secret"
 
 BASE_DIR      = os.path.dirname(__file__)
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
 STATIC_IMG    = os.path.join(BASE_DIR, "static", "images")
 ALLOWED_EXCEL = {"xlsx", "xls"}
-ALLOWED_IMG   = {"png", "jpg", "jpeg", "gif", "webp"}
+ALLOWED_IMG   = {"png", "jpg", "jpeg", "gif", "webp","pdf"}
 EXCEL_FILE    = os.path.join(UPLOAD_FOLDER, "data.xlsx")
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -237,8 +254,13 @@ def _convert_emf_to_png(emf_bytes):
 
 
 def _sheet_dir(sheet_name):
-    """用 hash 當資料夾名稱，避免中文被 secure_filename 全部清空而混用同一目錄"""
-    return hashlib.md5(sheet_name.encode("utf-8")).hexdigest()[:12]
+    mapping = {
+        "電氣": "electric",
+        "排水": "drainage",
+        "給水": "water",
+        "弱電": "low_voltage",
+    }
+    return mapping.get(sheet_name, sheet_name)
 
 
 def _img_folder(sheet_name, item_index):
@@ -248,9 +270,15 @@ def _img_folder(sheet_name, item_index):
 
 
 def list_images(sheet_name, item_index):
-    folder = _img_folder(sheet_name, item_index)
-    return sorted([f for f in os.listdir(folder) if f.rsplit(".", 1)[-1].lower() in ALLOWED_IMG])
+    folder = os.path.join(STATIC_IMG, _sheet_dir(sheet_name), str(item_index))
 
+    if not os.path.exists(folder):
+        return []
+
+    return sorted([
+        f for f in os.listdir(folder)
+        if f.rsplit(".", 1)[-1].lower() in ALLOWED_IMG
+    ])
 
 # ─── data loading ─────────────────────────────────────────────────────────────
 
@@ -349,8 +377,8 @@ def index():
                 os.remove(os.path.join(UPLOAD_FOLDER, old))
             # 清除圖片快取
             import shutil
-            if os.path.exists(STATIC_IMG):
-                shutil.rmtree(STATIC_IMG)
+            #if os.path.exists(STATIC_IMG):
+                #shutil.rmtree(STATIC_IMG)
             os.makedirs(STATIC_IMG, exist_ok=True)
             f.save(EXCEL_FILE)
             flash("檔案上傳成功！")
@@ -359,80 +387,140 @@ def index():
         return redirect(url_for("index"))
 
     sheets, error = load_sheets()
+
+    if sheets:
+       sheets, error = load_sheets()
     return render_template("index.html", sheets=sheets, error=error)
 
 
 @app.route("/system/<path:sheet_name>")
 def defects(sheet_name):
-    df, _, _ = load_sheet_data(sheet_name)
+
+    sheet_name = sheet_name.strip()
+
+    sheets, _ = load_sheets()
+
+    real_sheet = next((s for s in sheets if s.strip() == sheet_name), None)
+
+    if real_sheet is None:
+        return redirect(url_for("index"))
+
+    # ⭐ 文件清冊
+    if real_sheet == "文件清冊":
+        df = pd.read_excel(EXCEL_FILE, sheet_name=real_sheet)
+        items = df["問題"].dropna().tolist()
+
+        return render_template(
+            "defects.html",
+            sheet_name=real_sheet,
+            items=items
+        )
+
+    # ⭐ 原本系統
+    df, _, _ = load_sheet_data(real_sheet)
+
     if df is None:
         return redirect(url_for("index"))
 
-    # ===== Excel資料 =====
-    excel_items = df[COL_DEFECT].tolist()
-
-    # ===== JSON新增資料 =====
-    data = load_json()
-    extra = data.get(sheet_name, [])
-
-    # ===== 合併（新增放前面）=====
-    items = []
-
-    for item in extra:
-        items.append("🆕 " + item["缺失項目"])
-
-    items += excel_items
-
-    return render_template("defects.html", sheet_name=sheet_name, items=items)
-    df, _, _ = load_sheet_data(sheet_name)
-    if df is None:
-        return redirect(url_for("index"))
     items = df[COL_DEFECT].tolist()
-    return render_template("defects.html", sheet_name=sheet_name, items=items)
 
+    return render_template(
+        "defects.html",
+        sheet_name=real_sheet,
+        items=items
+    )
 
 @app.route("/system/<path:sheet_name>/defect/<int:item_index>", methods=["GET", "POST"])
 def regulation(sheet_name, item_index):
-    df, actual_cols, row_ranges = load_sheet_data(sheet_name)
+
+    sheet_name = sheet_name.strip()
+
+    sheets, _ = load_sheets()
+
+    # 找真正 sheet（防空白）
+    real_sheet = next((s for s in sheets if s.strip() == sheet_name), None)
+
+    if real_sheet is None:
+        return redirect(url_for("index"))
+
+    # =========================
+    # ⭐ 文件清冊專用（重點）
+    # =========================
+    if real_sheet == "文件清冊":
+
+        df = pd.read_excel(EXCEL_FILE, sheet_name=real_sheet)
+
+        if item_index >= len(df):
+            return redirect(url_for("index"))
+
+        row = df.iloc[item_index]
+
+        problem = str(row["問題"]).strip()
+        safe_problem = safe_name(problem)
+
+        folder = os.path.join(app.static_folder, "images", "documents", safe_problem)
+
+        if os.path.exists(folder):
+            images = [
+                f for f in os.listdir(folder)
+                if f.rsplit(".", 1)[-1].lower() in ALLOWED_IMG
+            ]
+        else:
+            images = []
+
+        return render_template(
+    "regulation.html",   # ⭐ 改這裡
+    sheet_name=real_sheet,
+    system_en="documents",
+    defect=problem,
+    safe_defect=safe_problem,
+    reg_text="",          # 文件清冊沒有法規
+    content_text="",      # 沒內容
+    images=images,
+    item_index=item_index,
+    col_warning=[]
+)
+
+    # =========================
+    # ⭐ 原本法規（不要動）
+    # =========================
+    df, actual_cols, row_ranges = load_sheet_data(real_sheet)
+
     if df is None or item_index >= len(df):
         return redirect(url_for("index"))
 
-    # 手動上傳圖片
-    if request.method == "POST":
-        uploaded = request.files.getlist("images")
-        count = 0
-        for f in uploaded:
-            if f and f.filename and allowed_img(f.filename):
-                ext  = f.filename.rsplit(".", 1)[1].lower()
-                name = hashlib.md5(f.read()).hexdigest()[:12] + "." + ext
-                f.seek(0)
-                f.save(os.path.join(_img_folder(sheet_name, item_index), name))
-                count += 1
-        if count:
-            flash(f"上傳了 {count} 張圖片")
-        return redirect(url_for("regulation", sheet_name=sheet_name, item_index=item_index))
+    row = df.iloc[item_index]
 
-    # 從 Excel 提取圖片（只提取這個工作表一次）
-    extract_and_cache_images(sheet_name, row_ranges)
-
-    row          = df.iloc[item_index]
-    defect       = row[COL_DEFECT]
-    reg_text     = row[COL_REG]
+    defect = str(row[COL_DEFECT]).strip()
+    reg_text = row[COL_REG]
     content_text = row[COL_CONTENT]
-    images       = list_images(sheet_name, item_index)
-    col_warning  = actual_cols if (not reg_text and not content_text and not images) else None
+
+    safe_defect = safe_name(defect)
+
+    system_en = SYSTEM_MAP.get(real_sheet, real_sheet)
+
+    folder = os.path.join(app.static_folder, "images", system_en, safe_defect)
+
+    if os.path.exists(folder):
+        images = [
+            f for f in os.listdir(folder)
+            if f.rsplit(".", 1)[-1].lower() in ALLOWED_IMG
+        ]
+    else:
+        images = []
 
     return render_template(
         "regulation.html",
-        sheet_name=sheet_name,
+        sheet_name=real_sheet,
+        system_en=system_en,
         defect=defect,
+        safe_defect=safe_defect,
         reg_text=reg_text,
         content_text=content_text,
         images=images,
         item_index=item_index,
-        col_warning=col_warning,
+        col_warning=actual_cols
     )
-
 
 @app.route("/system/<path:sheet_name>/defect/<int:item_index>/delete_image/<filename>")
 def delete_image(sheet_name, item_index, filename):
