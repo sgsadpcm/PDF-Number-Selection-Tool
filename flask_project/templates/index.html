@@ -7,18 +7,40 @@
   <h2>📂 系統分類</h2>
 
   {% if sheets %}
-    <p style="color:#718096;font-size:0.9rem;margin-bottom:18px;">
-      共 {{ sheets|length }} 個系統，點擊類別以查看缺失項目
-    </p>
-    <div class="grid">
+
+    <!-- 🔽 下拉式選單 -->
+    <div style="margin-bottom:24px;">
+      <p style="color:#718096;font-size:0.9rem;margin-bottom:8px;">
+        請選擇要查詢的系統
+      </p>
+
+      <form onchange="if(this.system.value) location=this.system.value;">
+  <select name="system" style="padding:10px;border-radius:10px;width:100%;">
+
+    <option value="">請選擇功能</option>
+
+    <!-- 📘 法規查詢 -->
+    <optgroup label="📘 法規查詢">
       {% for sheet in sheets %}
-        <a class="chip" href="{{ url_for('defects', sheet_name=sheet) }}">
-          {{ sheet }}
-        </a>
-      {% endfor %}
+  {% if sheet.strip() != "文件清冊" %}
+    <option value="{{ url_for('defects', sheet_name=sheet) }}">
+      {{ sheet }}
+    </option>
+  {% endif %}
+{% endfor %}
+    </optgroup>
+
+    <!-- 📄 文件清冊 -->
+    <optgroup label="📄 文件">
+      <option value="{{ url_for('defects', sheet_name='文件清冊') }}">文件清冊</option>
+    </optgroup>
+
+  </select>
+</form>
     </div>
 
-    <div class="upload-box" style="margin-top:32px;">
+    <!-- 🔹 上傳區 -->
+    <div class="upload-box">
       <p style="color:#718096;font-size:0.85rem;margin-bottom:8px;">更換 Excel 檔案</p>
       <form method="POST" enctype="multipart/form-data">
         <input type="file" name="file" accept=".xlsx,.xls">
@@ -26,8 +48,13 @@
         <button type="submit">上傳新檔案</button>
       </form>
     </div>
+
   {% else %}
-    <p style="color:#718096;margin-bottom:8px;">尚未上傳 Excel 檔案。請上傳包含法規資料的 Excel 檔案。</p>
+
+    <p style="color:#718096;margin-bottom:8px;">
+      尚未上傳 Excel 檔案。請上傳包含法規資料的 Excel 檔案。
+    </p>
+
     <div class="upload-box">
       <div style="font-size:2rem;margin-bottom:10px;">📄</div>
       <p style="font-weight:600;margin-bottom:4px;">上傳 Excel 法規檔案</p>
@@ -40,6 +67,7 @@
         <button type="submit">上傳檔案</button>
       </form>
     </div>
+
   {% endif %}
 </div>
 {% endblock %}

@@ -1,0 +1,11 @@
+<h2>文件清冊</h2>
+
+<ul>
+{% for item in items %}
+    <li>
+        <a href="/documents/{{ loop.index0 }}">
+            {{ item["問題"] }}
+        </a>
+    </li>
+{% endfor %}
+</ul>

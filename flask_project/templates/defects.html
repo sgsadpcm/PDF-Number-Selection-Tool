@@ -22,7 +22,7 @@
       共 {{ items|length }} 個缺失項目，點擊查看對應法規依據
     </p>
     {% for item in items %}
-      <a class="list-item" href="{{ url_for('regulation', sheet_name=sheet_name, item_index=loop.index0) }}">
+      <a class="list-item" href="{{ url_for('regulation', sheet_name=sheet_name.strip(), item_index=loop.index0) }}">
         <span class="num">{{ loop.index }}</span>
         <span class="text">{{ item }}</span>
       </a>
